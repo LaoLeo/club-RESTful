@@ -2,6 +2,8 @@ const mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     ObjectId = mongoose.Schema.Types.ObjectId
 const moment = require('moment')
+const ApiError = require('../controllers/ApiErrorController.js')
+const ApiErrorNames = require('../controllers/ApiErrorNames.js')
 
 const articleSchema = new Schema({
     title: {
@@ -31,13 +33,13 @@ const articleSchema = new Schema({
 
 const ArticleM = exports.ArticleModel = mongoose.model('Article', articleSchema)
 
-ArticleM.pre('save', function(next) {
+articleSchema.pre('save', function(next) {
     if(!this.isNew) this.meta.updateDate = Date.now()
 
     next()
 })
 
-ArticleM.static = {}
+articleSchema.static = {}
 
 exports.DAO = {
     create: async (ctx, next) => {
@@ -58,10 +60,9 @@ exports.DAO = {
             ctx.body = result
 
         }catch(err) {
-            throw new Error('article save failed')
+            throw (new ApiError(ApiErrorNames.DATA_SAVE_FAIL))
+            // throw new Error('article save failed')
         }
 
     }
 }
-
-

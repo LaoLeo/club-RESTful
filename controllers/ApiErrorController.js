@@ -5,7 +5,7 @@ const ApiErrorNames = require('./ApiErrorNames')
  */
 class ApiError extends Error {
 
-    constructor(error_name) {
+    constructor(error_name='') {
 
         super()
 
@@ -14,6 +14,11 @@ class ApiError extends Error {
         this.code = error_info.code
         this.msg = error_info.msg
 
+    }
+
+    setErrorInfo(error_code, error_msg) {
+        this.code = error_code
+        this.msg = error_msg
     }
 }
 

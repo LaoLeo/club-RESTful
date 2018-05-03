@@ -6,7 +6,7 @@ const ApiError = require('../controllers/ApiErrorController')
 const response_formatter = (ctx) => {
     if(ctx.body) {
         ctx.body = {
-            code: 0,
+            code: 200,
             msg: 'success',
             data: ctx.body
         }
@@ -37,8 +37,9 @@ const url_filter = (parrern) => {
                     msg: err.msg
                 }
 
-                //继续往外抛
-                throw err
+                // 日志操作
+                // coding...
+                return 
             }
         }
 
