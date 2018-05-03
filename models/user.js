@@ -4,6 +4,8 @@ const mongoose = require('mongoose'),
 const moment = require('moment')
 const ApiError = require('../controllers/ApiErrorController.js')
 const ApiErrorNames = require('../controllers/ApiErrorNames.js')
+const CONST = require('../utils/const.js')
+const ClubM = require('../models/club.js')
 
 const userSchema = new Schema({
     name: {
@@ -41,7 +43,39 @@ userSchema.pre('save', function(next) {
     next()
 })
 
-userSchema.static = {}
+userSchema.statics = {
+    getClubsRef: (id) => {
+        return new Promise((resolve, reject) => {
+            UserM.findById(id).populate('clubs_own').populate('clubs_join').exec((err, user) => {
+                if(err) reject(err)
+
+                resolve(user)
+            })
+        })
+    },
+    getClubsNotJoin: (id) => {
+        return new Promise((resolve, reject) => {
+            UserM.findById(id).exec((err, user) => {
+
+                let {clubs_own, clubs_join} = user
+                let clubsRef = clubs_own.concat(clubs_join)
+                let clubIDsRef = []
+                if(clubsRef.length > 0) {
+                    for(let clubId of clubsRef) {
+                        clubIDsRef.push(clubId)
+                    }
+                }
+
+               ClubM.clubModel.find({_id: {$nin: clubIDsRef}}).exec((err, clubs) => {
+                    resolve(clubs)
+               })
+            })
+            
+        })
+        
+        
+    }
+}
 
 // 生成model，并导出API
 const UserM = exports.userModel = mongoose.model('User', userSchema)
@@ -51,7 +85,7 @@ exports.DAO = {
         const params = ctx.request.body
         const name = params.name || ''
         const picture = params.picture || ''
-        if(!name || !picture) throw (new ApiError()).setErrorInfo(400, '信息不全')
+        if(!name || !picture) throw new ApiError(ApiErrorNames.MISSING_PAEAM)
 
         let usr = new UserM({
             name,
@@ -70,7 +104,7 @@ exports.DAO = {
 
     editInfo: async (ctx, next) => {
         const params = ctx.request.body
-        if(!params._id) throw (new ApiError()).setErrorInfo(400, '非法操作')
+        if(!params._id) throw new ApiError(null, 400, '非法操作')
         let info = {}
         if(params.name) info.name = params.name
         if(params.sex) info.sex = params.sex
@@ -89,6 +123,54 @@ exports.DAO = {
             resultDoc.save()
             ctx.body = {
                 user: resultDoc
+            }
+        } catch(err) {
+            console.log(err)
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+    },
+
+    getClubsRelateSelf: async (ctx, next) => {
+        let {userId} = ctx.query
+        if(!userId) throw new ApiError(null, 400, '非法操作')
+
+        try {
+            let userRef = await UserM.getClubsRef(userId)
+            ctx.body = {
+                clubs_join: userRef.clubs_join,
+                clubs_own: userRef.clubs_own
+            }
+        } catch(err) {
+            console.log(err)
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+
+    },
+
+    getClubsRecommend: async (ctx, next) => {
+        let {userId} = ctx.query
+        let clubsRecommendArr = []
+        if(!userId) throw new ApiError(null, 400, '非法操作')
+
+        try {
+            let clubsNotJoin = await UserM.getClubsNotJoin(userId)
+            if(clubsNotJoin.length > CONST.CLUB_RECOMMEND_NUMBER) {
+                let indexArr = []
+                while(indexArr.length < CONST.CLUB_RECOMMEND_NUMBER) {
+                    let index = Math.floor(Math.random() * clubsNotJoin.length)
+                    if(indexArr.indexOf(index) > -1) continue
+
+                    indexArr.push(index)
+                }        
+                for(let i = 0; i < indexArr.length; i++) {
+                    let index = indexArr[i]
+                    clubsRecommendArr.push(clubsNotJoin[index])
+                }
+            }else {
+                clubsRecommendArr = clubsNotJoin
+            }
+            ctx.body = {
+                clubs_recommend: clubsRecommendArr
             }
         } catch(err) {
             console.log(err)

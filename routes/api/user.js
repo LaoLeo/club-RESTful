@@ -22,6 +22,8 @@ router.prefix('/users')
 //   })
 
 router.post('/create', async (ctx, next) => UserM.DAO.create(ctx, next))
-router.post('/edit', UserM.DAO.editInfo)
+router.put('/edit', UserM.DAO.editInfo)
+router.get('/clubsRelateSelf', UserM.DAO.getClubsRelateSelf)
+router.get('/clubsRecommend', UserM.DAO.getClubsRecommend)
 
 module.exports = router
