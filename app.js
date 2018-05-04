@@ -8,6 +8,14 @@ const convert = require('koa-convert')
 const logger = require('koa-logger')
 const middlewares = require('./utils/middlewares')
 
+app.use(async(ctx, next) => {
+  ctx.set('Access-Control-Allow-Origin', '*')
+  ctx.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
+  ctx.set('Access-Control-Allow-Headers', 'Content-Type, x-access-token')
+  // Content-Type表示具体请求中的媒体类型信息
+  // ctx.set("Content-Type", "application/json;charset=utf-8");
+  await next()
+})
 
 app.use(views(__dirname + '/views', {
   extension: 'pug'
@@ -33,6 +41,7 @@ app.use(async (ctx, next) => {
   console.log(`${ctx.method} ${ctx.url} - ${ms}ms`)
 })
 
+app.use(middlewares.handleAccessToken())
 app.use(middlewares.response_formatter('^/api'))
 
 // routes

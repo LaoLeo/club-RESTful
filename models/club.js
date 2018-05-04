@@ -63,7 +63,7 @@ clubSchema.pre('save', function(next) {
 clubSchema.statics = {
     getClubOwnByUserId: async (id) => {
         try {
-            let userDoc = await UserM.userModel.findOne({_id: id})
+            let userDoc = await UserM.userModel.findOne({_id: id}).select('clubs_own').lean().exec()
             if(userDoc) {
                 return userDoc.clubs_own
             }else {

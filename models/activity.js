@@ -2,6 +2,10 @@ const mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     ObjectId = mongoose.Schema.Types.ObjectId
 const moment = require('moment')
+const ApiError = require('../controllers/ApiErrorController.js')
+const ApiErrorNames = require('../controllers/ApiErrorNames.js')
+const CONST = require('../utils/const.js')
+const ClubM = require('../models/club.js')
 
 const activitySchema = new Schema({
     title: {
@@ -13,10 +17,23 @@ const activitySchema = new Schema({
         require: true
     },
     author: {
-        type: String,
-        require: true
+        type: ObjectId,
+        ref: 'Club'
     },
-    status: Number,
+    type: Number,
+    status: Number, //stash: 0, work: 1, invalid: 2
+    participants: [{
+        type: ObjectId,
+        ref: 'User'
+    }],
+    praises: [{
+        type: ObjectId,
+        ref: 'Praise'
+    }],
+    comments: [{
+        type: ObjectId,
+        ref: 'comment'
+    }],
     meta: {
         createDate: {
             type: Date,
@@ -29,18 +46,407 @@ const activitySchema = new Schema({
     }
 })
 
-const ActivityM = exports.ActivityModel = mongoose.model('Activity', activitySchema)
-
-ActivityM.pre('save', function(next) {
+activitySchema.pre('save', function(next) {
     if(!this.isNew) this.meta.updateDate = Date.now()
 
     next()
 })
 
-ActivityM.static = {}
+activitySchema.statics = {
+    validateActicty: async (userId, activityId) => {
+        let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
+        let activity = await ActivityM.findById(activityId)
+        if((Array.isArray(clubOwn) && clubOwn.length === 0) || !activity ) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
 
-exports.DAO = {
-    create: async (ctx, next) => {}
+        if(clubOwn[0] !== activity.author) throw new ApiError(ApiErrorNames.FORBIDDEN)
+
+        return activity
+    }
 }
 
+const ActivityM = exports.ActivityModel = mongoose.model('Activity', activitySchema)
 
+exports.DAO = {
+    /**
+     * 创建或者暂存活动
+     * 
+     * @method POST
+     * body: {
+     *      title {String} 
+     *      content {String}
+     *      type {Number}
+     *      stash {Number} 控制活动状态，暂存或者发布
+     * } 
+     */
+    create: async (ctx, next) => {
+        let userId = ctx.userId
+        let {
+            title,
+            content,
+            type,
+            stash
+        } = ctx.request.body
+
+        try {
+            let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
+            if(!clubOwn || (Array.isArray(clubOwn) && clubOwn.length === 0)) throw new ApiError(null, 403, '你还没有属于自己的社团哦~')
+            
+            let clubId = clubOwn[0]
+            let activity = new ActivityM({
+                author: clubId,
+                title,
+                content,
+                type,
+                status: stash ? CONST.ACTIVITY_STASH : CONST.ACTIVITY_WORK
+            })
+            await ClubM.clubModel.findByIdAndUpdate(
+                clubId,
+                { $addToSet: { activities: activity._id } }
+            )
+            let doc = await activity.save()
+            ctx.body = {
+                activity: doc
+            }
+        } catch(err) {
+            console.log(err)
+            throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
+        }
+        
+    },
+
+    /**
+     * 删除活动
+     * 
+     * @method PUT
+     * body {
+     *      activityId
+     * }
+     */
+    remove: async (ctx, next) => {
+        let userId = ctx.userId
+        let {
+            activityId
+        } = ctx.request.body
+
+        try {
+            let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
+            if(!clubOwn || (Array.isArray(clubOwn) && clubOwn.length === 0)) throw new ApiError(ApiErrorNames.ILLEGAL_OPERATION)
+
+            let club = await ClubM.clubModel.findOne({
+                _id: clubOwn[0],
+                activities: activityId
+            })
+            if(!club) throw new ApiError(ApiErrorNames.ILLEGAL_OPERATION)
+            
+            let updateInfo = await club.update({
+                $pull: { activities: activityId}
+            })
+            if(updateInfo.ok) {
+                await ActivityM.findByIdAndRemove(activityId)
+                ctx.body = {}
+            }else {
+                throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
+            }
+        } catch(err) {
+            console.log(err)
+            if (err) {
+                throw err
+            } else {
+                throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            }
+        }
+        
+    },
+
+    /**
+     * 修改活动
+     * 
+     * @method PUT
+     * body {
+     *      activityId,
+     *      title,
+     *      content,
+     *      type
+     * }
+     */
+    edit: async (ctx, next) => {
+        let userId = ctx.userId
+        let {
+            activityId,
+            title,
+            content,
+            type
+        } = ctx.request.body
+
+        try {
+            let canEditQuery = await ActivityM.validateActicty(userId, activityId)
+            if(!canEditQuery) throw new ApiError(ApiErrorNames.FORBIDDEN)
+
+            let info = {}
+            if(title) info.title = title
+            if(content) info.content = content
+            if(type) info.type = type
+
+            let activityDoc = await ActivityM.findOne({_id: activityId, status: {$in: [CONST.ACTIVITY_WORK, CONST.ACTIVITY_STASH]}})
+            if(!activityDoc) throw new ApiError(ApiErrorNames.ILLEGAL_OPERATION) 
+
+            let updateInfo = await activityDoc.update({ $set: info })
+            if (updateInfo.ok) {
+                let activityUpdateDoc = await activityDoc.save()
+                ctx.body = {
+                    activity: activityUpdateDoc
+                }
+            } else {
+                throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
+            }
+
+        } catch(err) {
+            console.log(err)
+            if (err instanceof ApiError) {
+                throw err
+            } else {
+                throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            }
+        }
+        
+    },
+
+    /**
+     * 列出报名该活动的人员信息
+     * 
+     * @method GET
+     * 
+     * query {
+     *      activityId
+     * }
+     */
+    getParticipants: async (ctx, next) => {
+        let userId = ctx.userId
+        let {
+            activityId
+        } = ctx.query
+        
+        try {
+            // let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
+            // let activity = await ActivityM.findById(activityId)
+            // if((Array.isArray(clubOwn) && clubOwn.length === 0) || !activity ) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
+
+            // if(clubOwn[0] !== activity.author) throw new ApiError(ApiErrorNames.FORBIDDEN)
+
+            let activityQuery = await ActivityM.validateActicty(userId, activityId)
+            let activityDoc = await activityQuery.populate({
+                path: 'participants',
+                model: 'User',
+                select: '_id name picture phone'
+            }).exec()
+            ctx.body = {
+                participants: activityDoc.participants
+            }
+        } catch(err) {
+            console.log(err)
+            throw err
+        }
+        
+    },
+
+    /**
+     * 列出该协会的所有活动
+     * 
+     * @method GET
+     * query {
+     *      clubId,
+     *      page,
+     *      column
+     * }
+     * 
+     */
+    getActivitiesInClub: async (ctx, next) => {
+        let userId = ctx.userId
+        let {
+            clubId,
+            page,
+            column
+        } = ctx.query
+        
+        try {
+            let statusAllowArray = []
+            let club = await ClubM.clubModel.findById(clubId).select('owner').exec()
+            if(club.owner === userId) {
+                statusAllowArray = [CONST.ACTIVITY_INVALID, CONST.ACTIVITY_WORK, CONST.ACTIVITY_STASH]
+            }else {
+                statusAllowArray = [CONST.ACTIVITY_INVALID, CONST.ACTIVITY_WORK]
+            }
+            page = parseInt(page) || 1
+            column = parseInt(column) || 5
+            let conditions = {
+                author: clubId,
+                status: {$in: statusAllowArray}
+            }
+            let activitiesQuery =  await ActivityM.find(conditions)
+            let total = activitiesQuery.count()
+            let activities = await activitiesQuery.skip((page - 1 ) * column)
+            .limit(column)
+            .exec()
+            
+            ctx.body = {
+                activities,
+                total
+            }
+        } catch(err) {
+            console.log(err)
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+        
+    },
+
+    /**
+     * 列出活动首页的所有活动
+     * 
+     * @method GET
+     * 
+     * query {
+     *      page,
+     *      column
+     * }
+     */
+    getActivities: async(ctx, next) => {
+        let {
+            page,
+            column
+        } = ctx.query
+        page = parseInt(page) || 1
+        column = parseInt(column) || 10
+
+        try {
+            let activitiesQuery = ActivityM.find({status: CONST.ACTIVITY_WORK})
+            let total = activitiesQuery.count()
+            let activities = activityQuery.sort({
+                'meta.createDate': 'desc',
+                'meta.updateDate': 'desc'
+            })
+            .skip((page - 1) * column)
+            .limit(column)
+            .exec()
+            ctx.body = {
+                activities,
+                total
+            }
+        } catch(err) {
+            console.log(err)
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+
+    },
+
+    /**
+     * 报名活动
+     * 
+     * @method POST
+     * body {
+     *      activityId
+     * }
+     */
+    participate: async (ctx, next) => {
+        let {
+            activityId
+        } = ctx.request.body
+
+        try {
+            let userQuery = ctx.userQuery
+            let user = await userQuery.exec()
+            if (!user.phone) throw new ApiError(null, 403, '报名之前需要绑定手机号哦~')
+
+            let ativityQuery = await ActivityM.findById(activityId)
+            if (!ativityQuery) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
+
+            let updateInfo
+            if (ativityQuery.type === CONST.ACTIVITY_ALLOW_ALL) {
+                updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
+            } else if(ativityQuery.type === CONST.ACTIVITY_ALLOW_MEMBE) {
+                let clubId = ativityQuery.author
+                let clubQuery = await ClubM.clubModel.find({ _id: clubId, 'members._id': ctx.userId})
+                if(clubQuery) {
+                    updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
+                } else {
+                    throw new ApiError(null, 403, `你不是-${clubQuery.name}-的会员哦`)
+                }
+                
+            }
+            if(updateInfo.ok) {
+                ctx.body = {}
+            } else {
+                throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
+            }
+
+        } catch(err) {
+            if(err instanceof ApiError) throw err
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+    },
+
+    /**
+     * 列出报名成功的活动列表
+     */
+    getParticipated: async (ctx, next) => {
+        let {
+            page,
+            column
+        } = ctx.query
+        let userId = ctx.userId
+        page =  parseInt(page) || 1
+        column = parseInt(column) || 5
+        try {
+            let activities = await ActivityM.find({
+                participants: userId,
+                status: { $nin: [CONST.ACTIVITY_STASH] }
+            })
+            .sort({
+                status: 'asc',
+                'meta.updateDate': 'desc'
+            })
+            .skip((page - 1) * column)
+            .limit(column)
+            .exec()
+            ctx.body = {
+                activities
+            }
+        } catch(err) {
+            console.log(err)
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+        
+    },
+
+    /**
+     * 失效活动，情况为活动过期、活动终止
+     * 
+     * @method PUT
+     * body {
+     *      activityId
+     * }
+     */
+    InvalidActivity: async (ctx, next) => {
+        let {
+            activityId
+        } = ctx.request.body
+
+        try {
+            let activityQuery = await ActivityM.validateActicty(ctx.userId, activityId)
+            let updateInfo = await activityQuery.update({$set: {status: CONST.ACTIVITY_INVALID}})
+            if (updateInfo.ok) {
+                // 更新时间
+                activityQuery.save()
+            } else {
+                throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
+            }
+        } catch(err) {
+            console.log(err)
+            if (err instanceof ApiError) {
+                throw err
+            } else {
+                throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            }
+        }
+        
+    }
+}
