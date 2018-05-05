@@ -58,7 +58,7 @@ activitySchema.statics = {
         let activity = await ActivityM.findById(activityId)
         if((Array.isArray(clubOwn) && clubOwn.length === 0) || !activity ) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
 
-        if(clubOwn[0] !== activity.author) throw new ApiError(ApiErrorNames.FORBIDDEN)
+        if(clubOwn[0].toJSON() !== activity.author.toJSON()) throw new ApiError(ApiErrorNames.FORBIDDEN)
 
         return activity
     }
@@ -187,14 +187,14 @@ exports.DAO = {
             if(content) info.content = content
             if(type) info.type = type
 
-            let activityDoc = await ActivityM.findOne({_id: activityId, status: {$in: [CONST.ACTIVITY_WORK, CONST.ACTIVITY_STASH]}})
-            if(!activityDoc) throw new ApiError(ApiErrorNames.ILLEGAL_OPERATION) 
-
-            let updateInfo = await activityDoc.update({ $set: info })
-            if (updateInfo.ok) {
-                let activityUpdateDoc = await activityDoc.save()
+            let activityUpdatedDoc = await ActivityM.findOneAndUpdate(
+                { _id: activityId, status: {$in: [CONST.ACTIVITY_WORK, CONST.ACTIVITY_STASH]} },
+                { $set: Object.assign({}, info, {'meta.updateDate': Date.now()}) },
+                { new: true }
+            )
+            if (activityUpdatedDoc) {
                 ctx.body = {
-                    activity: activityUpdateDoc
+                    activity: activityUpdatedDoc
                 }
             } else {
                 throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
@@ -227,24 +227,25 @@ exports.DAO = {
         } = ctx.query
         
         try {
-            // let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
-            // let activity = await ActivityM.findById(activityId)
-            // if((Array.isArray(clubOwn) && clubOwn.length === 0) || !activity ) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
-
-            // if(clubOwn[0] !== activity.author) throw new ApiError(ApiErrorNames.FORBIDDEN)
-
-            let activityQuery = await ActivityM.validateActicty(userId, activityId)
-            let activityDoc = await activityQuery.populate({
-                path: 'participants',
-                model: 'User',
-                select: '_id name picture phone'
-            }).exec()
-            ctx.body = {
-                participants: activityDoc.participants
+            let activityModle = await ActivityM.validateActicty(userId, activityId)
+            if(activityModle) {
+                let activityDoc = await ActivityM.populate(activityModle, {
+                    path: 'participants',
+                    model: 'User',
+                    select: '_id name picture phone'
+                })
+                ctx.body = {
+                    participants: activityDoc.participants
+                }
             }
+            
         } catch(err) {
             console.log(err)
-            throw err
+            if (err instanceof ApiError) {
+                throw err
+            } else {
+                throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            }
         }
         
     },
@@ -271,7 +272,7 @@ exports.DAO = {
         try {
             let statusAllowArray = []
             let club = await ClubM.clubModel.findById(clubId).select('owner').exec()
-            if(club.owner === userId) {
+            if(club.owner.toJSON() === userId) {
                 statusAllowArray = [CONST.ACTIVITY_INVALID, CONST.ACTIVITY_WORK, CONST.ACTIVITY_STASH]
             }else {
                 statusAllowArray = [CONST.ACTIVITY_INVALID, CONST.ACTIVITY_WORK]
@@ -283,8 +284,9 @@ exports.DAO = {
                 status: {$in: statusAllowArray}
             }
             let activitiesQuery =  await ActivityM.find(conditions)
-            let total = activitiesQuery.count()
-            let activities = await activitiesQuery.skip((page - 1 ) * column)
+            let total = activitiesQuery.length
+            let activities = await ActivityM.find(conditions)
+            .skip((page - 1 ) * column)
             .limit(column)
             .exec()
             
@@ -318,9 +320,10 @@ exports.DAO = {
         column = parseInt(column) || 10
 
         try {
-            let activitiesQuery = ActivityM.find({status: CONST.ACTIVITY_WORK})
-            let total = activitiesQuery.count()
-            let activities = activityQuery.sort({
+            let activitiesQuery = await ActivityM.find({status: CONST.ACTIVITY_WORK})
+            let total = activitiesQuery.length
+            let activities =  await ActivityM.find({status: CONST.ACTIVITY_WORK})
+            .sort({
                 'meta.createDate': 'desc',
                 'meta.updateDate': 'desc'
             })
@@ -353,8 +356,7 @@ exports.DAO = {
 
         try {
             let userQuery = ctx.userQuery
-            let user = await userQuery.exec()
-            if (!user.phone) throw new ApiError(null, 403, '报名之前需要绑定手机号哦~')
+            if (!userQuery.phone) throw new ApiError(null, 403, '报名之前需要绑定手机号哦~')
 
             let ativityQuery = await ActivityM.findById(activityId)
             if (!ativityQuery) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
@@ -364,7 +366,7 @@ exports.DAO = {
                 updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
             } else if(ativityQuery.type === CONST.ACTIVITY_ALLOW_MEMBE) {
                 let clubId = ativityQuery.author
-                let clubQuery = await ClubM.clubModel.find({ _id: clubId, 'members._id': ctx.userId})
+                let clubQuery = await ClubM.clubModel.findOne({ _id: clubId, 'members': ctx.userId})
                 if(clubQuery) {
                     updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
                 } else {
@@ -379,8 +381,13 @@ exports.DAO = {
             }
 
         } catch(err) {
-            if(err instanceof ApiError) throw err
-            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            console.log(err)
+            if (err instanceof ApiError) {
+                throw err
+            } else {
+                throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            }
+            
         }
     },
 
@@ -431,11 +438,12 @@ exports.DAO = {
         } = ctx.request.body
 
         try {
-            let activityQuery = await ActivityM.validateActicty(ctx.userId, activityId)
-            let updateInfo = await activityQuery.update({$set: {status: CONST.ACTIVITY_INVALID}})
+            let activityModle = await ActivityM.validateActicty(ctx.userId, activityId)
+            let updateInfo = await activityModle.update({$set: {status: CONST.ACTIVITY_INVALID}})
             if (updateInfo.ok) {
                 // 更新时间
-                activityQuery.save()
+                activityModle.save()
+                ctx.body = {}
             } else {
                 throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
             }

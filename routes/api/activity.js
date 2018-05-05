@@ -37,7 +37,7 @@ router.get(
 router.get(
     '/list', 
     middlewares.validateParams('query page column'),
-    ActivityM.DAO.getActivitiesInClub
+    ActivityM.DAO.getActivities
 )
 router.post(
     '/participate',
