@@ -64,7 +64,7 @@ activitySchema.statics = {
     }
 }
 
-const ActivityM = exports.ActivityModel = mongoose.model('Activity', activitySchema)
+const ActivityM = exports.activityModel = mongoose.model('Activity', activitySchema)
 
 exports.DAO = {
     /**

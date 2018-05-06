@@ -1,6 +1,7 @@
 const ApiError = require('../controllers/ApiErrorController')
 const ApiErrorNames = require('../controllers/ApiErrorNames')
 const UserM = require('../models/user')
+const ClubM = require('../models/club')
 
 /**
  * 在app.use(router)前调用
@@ -89,6 +90,19 @@ const validateUserId = () => {
     }
 }
 
+const validateClubOwner = () => {
+    return async (ctx, next) => {
+        let clubOwn = await ClubM.clubModel.getClubOwnByUserId(ctx.userId)
+        let clubId = clubOwn && clubOwn[0]
+        if(!clubId) {
+            throw ApiError(ApiErrorNames.FORBIDDEN)
+        } else {
+            ctx.clubId = clubId.toJSON()
+            await next()
+        }
+    }
+}
+
 const validateParams = (paramStr) => {
 
     return async (ctx, next) => {
@@ -119,5 +133,6 @@ module.exports = {
     response_formatter: url_filter,
     handleAccessToken,
     validateUserId,
+    validateClubOwner,
     validateParams
 }

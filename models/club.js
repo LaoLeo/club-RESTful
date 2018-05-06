@@ -73,6 +73,14 @@ clubSchema.statics = {
         } catch(err) {
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
         }
+    },
+    validateClubOwner: async (userId, clubId) => {
+        let userDoc = await UserM.userModel.findOne({_id: userId}).select('clubs_own').lean().exec()
+        let flag = false
+
+        if(userDoc && userDoc.clubs_own[0].toJSON() === clubId) flag = true
+
+        return flag
     }
 }
 

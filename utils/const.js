@@ -13,5 +13,9 @@ module.exports = {
     // activity type
     ACTIVITY_ALLOW_NONE: 0, // 不用报名，仅仅宣传一下
     ACTIVITY_ALLOW_ALL: 1, // 允许所有用户报名
-    ACTIVITY_ALLOW_MEMBE: 2 // 仅允许会员报名
+    ACTIVITY_ALLOW_MEMBE: 2, // 仅允许会员报名
+
+    // notice type
+    NOTICE_FOR_ALL_MEMBER: 0, // 发送给全部会员
+    NOTICE_FOR_MEMBER_JOINED_ACTIVITY: 1 // 发给参加某个活动的会员
 }
