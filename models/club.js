@@ -5,6 +5,7 @@ const mongoose = require('mongoose'),
 const UserM = require('./user.js')
 const ApiError = require('../controllers/ApiErrorController.js')
 const ApiErrorNames = require('../controllers/ApiErrorNames.js')
+const util = require('../utils/util')
 
 const clubSchema = new Schema({
     name: String,
@@ -98,6 +99,7 @@ exports.DAO = {
             signature,
             summary
         } = params
+        if (summary) summary = util.formatContent(summary)
 
         if(!name || !userId || !picture || !signature) throw new ApiError(ApiErrorNames.MISSING_PAEAM)
         
@@ -143,7 +145,7 @@ exports.DAO = {
         if(picture) info.picture = picture
         if(backgroundWall) info.backgroundWall = backgroundWall
         if(signature) info.signature = signature
-        if(summary) info.summary = summary
+        if(summary) info.summary = util.formatContent(summary)
 
         try {
             let clubOwn = await ClubM.getClubOwnByUserId(userId)

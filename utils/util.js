@@ -1,5 +1,8 @@
 const ApiError = require('../controllers/ApiErrorController')
 const ApiErrorNames = require('../controllers/ApiErrorNames')
+const conf = require('../config')
+const path = require('path')
+const fs = require('fs')
 
 module.exports = {
     handleApiError: (err) => {
@@ -10,5 +13,38 @@ module.exports = {
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
         }
 
+    },
+
+    /**
+     * @return {string: '20180102'}  
+     */
+    getDate: () => {
+        let date = new Date()
+        return `${date.getFullYear()}${date.getMonth()+1}${date.getDate()}`
+    },
+
+    /**
+     * @return {string:imageSaveURL}
+     */
+    formatImageSaveURL(userId, imageType) {
+        let date = this.getDate()
+        let imageDir = conf.imageSaveDir + '/' + date
+        let imageName = userId + Date.now() + '.' + imageType
+
+        let imageStaticDir = conf.staticDir + imageDir
+        if (!fs.existsSync(imageStaticDir)) fs.mkdirSync(imageStaticDir)
+        return `${imageDir}/${imageName}`
+    },
+
+    /**
+     * format content
+     * 
+     * @param {String} content 
+     * @return {String}
+     */
+    formatContent(content) {
+        let script_reg = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
+        let style_reg= /<style[^>]*?>[\s\S]*?<\/style>/gi
+        return content.replace(script_reg, "").replace(style_reg, "")
     }
 }

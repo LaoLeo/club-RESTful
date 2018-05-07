@@ -8,6 +8,7 @@ router.post(
     '/create',
     middlewares.validateClubOwner(),
     middlewares.validateParams('body title content'),
+    middlewares.validateTime(),
     CourseM.DAO.create
 )
 router.put(
@@ -20,6 +21,7 @@ router.put(
     '/edit',
     middlewares.validateClubOwner(),
     middlewares.validateParams('body cId'),
+    middlewares.validateTime(),
     CourseM.DAO.edit
 )
 router.get(

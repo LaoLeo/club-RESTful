@@ -7,6 +7,7 @@ const applications = require('./api/application')
 const activities = require('./api/activity')
 const notices = require('./api/notice')
 const courses = require('./api/course')
+const images = require('./api/image')
 
 const middlewares = require('../utils/middlewares')
 
@@ -27,6 +28,11 @@ router.use(
     middlewares.validateUserId(),
     courses.routes(),
     courses.allowedMethods()
+)
+router.use(
+    middlewares.validateUserId(),
+    images.routes(),
+    images.allowedMethods()
 )
 
 

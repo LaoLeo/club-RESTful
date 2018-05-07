@@ -10,6 +10,7 @@ var http = require('http');
 var conf = require('../config')
 var mongoose = require('mongoose');
 mongoose.Promise = Promise;
+const socket = require('../socket')
 
 /**
  * Get port from environment and store in Express.
@@ -23,6 +24,9 @@ var port = normalizePort(process.env.PORT || conf.port);
  */
 
 var server = http.createServer(app.callback());
+// socket connection
+var io = socket.install(server)
+app.io = io
 
 /**
  * Listen on provided port, on all network interfaces.

@@ -6,6 +6,8 @@ const ApiError = require('../controllers/ApiErrorController.js')
 const ApiErrorNames = require('../controllers/ApiErrorNames.js')
 const CONST = require('../utils/const.js')
 const ClubM = require('../models/club.js')
+const util = require('../utils/util')
+const socket = require('../socket')
 
 const activitySchema = new Schema({
     title: {
@@ -86,6 +88,7 @@ exports.DAO = {
             type,
             stash
         } = ctx.request.body
+        content = util.formatContent(content)
 
         try {
             let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
@@ -99,7 +102,7 @@ exports.DAO = {
                 type,
                 status: stash ? CONST.ACTIVITY_STASH : CONST.ACTIVITY_WORK
             })
-            await ClubM.clubModel.findByIdAndUpdate(
+            let club = await ClubM.clubModel.findByIdAndUpdate(
                 clubId,
                 { $addToSet: { activities: activity._id } }
             )
@@ -107,6 +110,17 @@ exports.DAO = {
             ctx.body = {
                 activity: doc
             }
+
+            // 推送
+            socket.pushMsg(
+                ctx.app.io, 
+                club.members.concat(ctx.userId), 
+                {
+                    activity: doc.toJSON(),
+                    msg: `${club.name} 新活动《${activity.title}》 推送`
+                }
+            )
+            
         } catch(err) {
             console.log(err)
             throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
@@ -184,7 +198,7 @@ exports.DAO = {
 
             let info = {}
             if(title) info.title = title
-            if(content) info.content = content
+            if(content) info.content = util.formatContent(content)
             if(type) info.type = type
 
             let activityUpdatedDoc = await ActivityM.findOneAndUpdate(
@@ -196,6 +210,16 @@ exports.DAO = {
                 ctx.body = {
                     activity: activityUpdatedDoc
                 }
+
+                // 推送
+                socket.pushMsg(
+                    ctx.app.io, 
+                    ctx.club.members.concat(ctx.userId), 
+                    {
+                        activity: activityUpdatedDoc.toJSON(),
+                        msg: `${ctx.club.name} 活动《${activityUpdatedDoc.title}》更新 推送`
+                    }
+                )
             } else {
                 throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
             }
@@ -362,11 +386,12 @@ exports.DAO = {
             if (!ativityQuery) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)
 
             let updateInfo
+            let clubQuery
             if (ativityQuery.type === CONST.ACTIVITY_ALLOW_ALL) {
                 updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
             } else if(ativityQuery.type === CONST.ACTIVITY_ALLOW_MEMBE) {
                 let clubId = ativityQuery.author
-                let clubQuery = await ClubM.clubModel.findOne({ _id: clubId, 'members': ctx.userId})
+                clubQuery = await ClubM.clubModel.findOne({ _id: clubId, 'members': ctx.userId})
                 if(clubQuery) {
                     updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
                 } else {
@@ -376,6 +401,18 @@ exports.DAO = {
             }
             if(updateInfo.ok) {
                 ctx.body = {}
+
+                // 推送
+                socket.pushMsg(
+                    ctx.app.io, 
+                    [clubQuery.owner], 
+                    {
+                        userName: ctx.userQuery.name,
+                        picture: ctx.userQuery.picture,
+                        phone: ctx.userQuery.phone,
+                        msg: `${ctx.userQuery.name} 报名了活动《${ativityQuery.title}》 推送`
+                    }
+                )
             } else {
                 throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
             }
@@ -444,6 +481,17 @@ exports.DAO = {
                 // 更新时间
                 activityModle.save()
                 ctx.body = {}
+
+                // 推送
+                socket.pushMsg(
+                    ctx.app.io, 
+                    activityModle.participants.concat(ctx.userId), 
+                    {
+                        aId: activityModle._id,
+                        title: activityModle.title,
+                        msg: `${ctx.club.name} 活动《${activityModle.title}》已失效 推送`
+                    }
+                )
             } else {
                 throw new ApiError(ApiErrorNames.DATA_HANDLE_FAIL)
             }

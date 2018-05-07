@@ -98,6 +98,7 @@ const validateClubOwner = () => {
             throw ApiError(ApiErrorNames.FORBIDDEN)
         } else {
             ctx.clubId = clubId.toJSON()
+            ctx.club = await ClubM.clubModel.findById(clubId)
             await next()
         }
     }
@@ -129,10 +130,36 @@ const validateParams = (paramStr) => {
     }
 }
 
+const validateTime = () => {
+    return async (ctx, next) => {
+        let {
+            startTime,
+            endTime
+        } = ctx.request.body
+
+        
+        if(startTime && endTime) {
+            startTime = new Date(parseInt(startTime))
+            endTime = new Date(parseInt(endTime))
+
+            if (startTime.getTime() > endTime.getTime()) {
+                throw new ApiError(null, 400, '开始时间应该小于结束时间')
+            }
+
+            ctx.request.body.startTime = startTime
+            ctx.request.body.endTime = endTime
+        }
+        
+        await next()
+
+    }
+}
+
 module.exports = {
     response_formatter: url_filter,
     handleAccessToken,
     validateUserId,
     validateClubOwner,
-    validateParams
+    validateParams,
+    validateTime
 }

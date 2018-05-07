@@ -19,6 +19,7 @@ router.put(
 router.put(
     '/edit',
     middlewares.validateUserId(),
+    middlewares.validateClubOwner(),
     middlewares.validateParams('body activityId'),
     ActivityM.DAO.edit
 )
@@ -53,7 +54,8 @@ router.get(
 )
 router.put(
     '/invalid', 
-    middlewares.validateUserId(), 
+    middlewares.validateUserId(),
+    middlewares.validateClubOwner(),
     middlewares.validateParams('body activityId'), 
     ActivityM.DAO.InvalidActivity
 )

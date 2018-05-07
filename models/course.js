@@ -6,6 +6,7 @@ const ApiError = require('../controllers/ApiErrorController')
 const ApiErrorNames = require('../controllers/ApiErrorNames')
 const CONST = require('../utils/const')
 const util = require('../utils/util')
+const app = require('../app')
 
 const courseSchema = new Schema({
     title: String,
@@ -48,6 +49,7 @@ exports.DAO = {
             startTime,
             endTime
         } = ctx.request.body
+        content = util.formatContent(content)
 
         try {
             let course = await CourseM.create({
@@ -128,19 +130,9 @@ exports.DAO = {
         } = ctx.request.body
         let info = {}
         if (title) info.title = title
-        if (content) info.content = content
-        if (startTime) {
-            // 格式处理
-            // coding...
-
-            info.startTime = startTime
-        }
-        if (endTime) {
-            // 格式处理
-            // coding...
-
-            info.endTime = endTime
-        }
+        if (content) info.content = util.formatContent(content)
+        if (startTime) info.startTime = startTime
+        if (endTime) info.endTime = endTime
 
         try {
             let doc = await ClubM.clubModel.findOne({
@@ -195,6 +187,7 @@ exports.DAO = {
             ctx.body = {
                 courses: club.courses
             }
+            ctx.app.io.emit('user@{5ae992809da6021b28e187c4}', { msg: '列表已发送'})
         } catch (err) {
             util.handleApiError(err)
         }

@@ -6,6 +6,7 @@ const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const convert = require('koa-convert')
 const logger = require('koa-logger')
+const koaBody = require('koa-body')
 const middlewares = require('./utils/middlewares')
 
 app.use(async(ctx, next) => {
@@ -14,24 +15,31 @@ app.use(async(ctx, next) => {
   ctx.set('Access-Control-Allow-Headers', 'Content-Type, x-access-token')
   // Content-Type表示具体请求中的媒体类型信息
   // ctx.set("Content-Type", "application/json;charset=utf-8");
+  if (ctx.method === 'OPTIONS') {
+    ctx.status = 200
+    return
+  }
   await next()
 })
 
-app.use(views(__dirname + '/views', {
-  extension: 'pug'
-}))
+// app.use(views(__dirname + '/views', {
+//   extension: 'pug'
+// }))
 const routers = require('./routes/index')
 
 // error handler
 onerror(app)
 
 // middlewares
-app.use(bodyparser({
-  enableTypes: ['json', 'form', 'text']
-}))
+app.use(koaBody({multipart: true}))
+// app.use(bodyparser({
+//   enableTypes: ['json', 'form', 'text']
+// }))
+app.use(bodyparser())
 app.use(convert(json()))
 app.use(convert(logger()))
-app.use(require('koa-static')(__dirname + '/public'))
+// app.use(require('koa-static')(__dirname + '/public'))
+app.use(require('koa-static')(__dirname + '/static'))
 
 // logger
 app.use(async (ctx, next) => {
