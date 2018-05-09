@@ -5,6 +5,7 @@ const ApiError = require('../controllers/ApiErrorController.js')
 const ApiErrorNames = require('../controllers/ApiErrorNames.js')
 const CONST = require('../utils/const.js')
 const ClubM = require('../models/club.js')
+const socket = require('../socket')
 
 const applicationSchema = new Schema({
     applicant: {
@@ -61,6 +62,25 @@ exports.DAO = {
             await club.save()
             
             ctx.body = {}
+
+            // 推送
+            socket.pushMsg(
+                ctx.app.io, 
+                [club.owner],
+                {   
+                    application: {
+                        status: 2,
+                        _id: application._id,
+                        user: {
+                            name: ctx.userQuery.name,
+                            picture: ctx.userQuery.picture,
+                            phone: ctx.userQuery.phone,
+                            introduce: introduce,
+                        }
+                    },
+                    msg: `${ctx.userQuery.name} 申请加入${club.name}`
+                }
+            )
         } catch(err) {
             console.log(err)
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
@@ -126,11 +146,43 @@ exports.DAO = {
                 /**
                  * 通知成功
                  */
+                // 推送
+                socket.pushMsg(
+                    ctx.app.io, 
+                    [application.applicant],
+                    {   
+                        application: {
+                            status: 1,
+                            club: {
+                                _id: ctx.club._id,
+                                name: ctx.club.name,
+                                picture: ctx.club.picture,
+                                backgroundWall: ctx.club.backgroundWall,
+                                signature: ctx.club.signature,
+                                summary: ctx.club.summary
+                            }
+                        },
+                        msg: `${ctx.club.name} 同意了你的申请`
+                    }
+                )
+                
             }else if(status === CONST.APPLICATION_REJECT) {
                 let application = await ApplicationM.updateStatus(aId, CONST.APPLICATION_REJECT)
                 /**
                  * 通知拒绝
                  */
+                // 推送
+                socket.pushMsg(
+                    ctx.app.io, 
+                    [application.applicant],
+                    {   
+                        application: {
+                            status: 0
+                        },
+                        msg: `${ctx.club.name} 拒绝了你的申请`
+                    }
+                )
+
             } 
             ctx.body = {}
 

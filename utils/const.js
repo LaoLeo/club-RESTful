@@ -9,6 +9,9 @@ module.exports = {
     ACTIVITY_STASH: 0, // 保存未发布
     ACTIVITY_WORK: 1, // 成功发布
     ACTIVITY_INVALID: 2, // 失效
+    // push
+    ACTIVITY_CHANGE: 3, // 内容改动
+    ACTIVITY_APPLICATE: 4, // 有人报名了活动
 
     // activity type
     ACTIVITY_ALLOW_NONE: 0, // 不用报名，仅仅宣传一下
@@ -17,5 +20,6 @@ module.exports = {
 
     // notice type
     NOTICE_FOR_ALL_MEMBER: 0, // 发送给全部会员
-    NOTICE_FOR_MEMBER_JOINED_ACTIVITY: 1 // 发给参加某个活动的会员
+    NOTICE_FOR_MEMBER_JOINED_ACTIVITY: 1, // 发给参加某个活动的会员
+
 }

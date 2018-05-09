@@ -116,8 +116,11 @@ exports.DAO = {
                 ctx.app.io, 
                 club.members.concat(ctx.userId), 
                 {
-                    activity: doc.toJSON(),
-                    msg: `${club.name} 新活动《${activity.title}》 推送`
+                    activity: {
+                        status: CONST.ACTIVITY_WORK,
+                        activity: doc.toJSON()
+                    },
+                    msg: `${club.name} 新活动《${activity.title}》`
                 }
             )
             
@@ -216,8 +219,11 @@ exports.DAO = {
                     ctx.app.io, 
                     ctx.club.members.concat(ctx.userId), 
                     {
-                        activity: activityUpdatedDoc.toJSON(),
-                        msg: `${ctx.club.name} 活动《${activityUpdatedDoc.title}》更新 推送`
+                        activity: {
+                            status: CONST.ACTIVITY_CHANGE,
+                            activity: activityUpdatedDoc.toJSON()
+                        },
+                        msg: `${ctx.club.name} 活动《${activityUpdatedDoc.title}》更新`
                     }
                 )
             } else {
@@ -233,6 +239,29 @@ exports.DAO = {
             }
         }
         
+    },
+
+    /**
+     * 列出某个活动的内容
+     * 
+     * @method GET
+     * 
+     * query {
+     *      aId
+     * }
+     */
+    getActivity: async (ctx, next) => {
+        let aId = ctx.query.aId
+
+        try {
+            let activity = await ActivityM.findById(aId)
+            if (!activity) throw ApiError(ApiErrorNames.DATA_NOT_EXIST)
+            ctx.body = {
+                activity
+            }
+        } catch (err) {
+            util.handleApiError(err)
+        }
     },
 
     /**
@@ -407,9 +436,15 @@ exports.DAO = {
                     ctx.app.io, 
                     [clubQuery.owner], 
                     {
-                        userName: ctx.userQuery.name,
-                        picture: ctx.userQuery.picture,
-                        phone: ctx.userQuery.phone,
+                        activity: {
+                            status: ACTIVITY_APPLICATE,
+                            user: {
+                                _id: ctx.userQuery._id,
+                                name: ctx.userQuery.name,
+                                picture: ctx.userQuery.picture,
+                                phone: ctx.userQuery.phone
+                            }
+                        },
                         msg: `${ctx.userQuery.name} 报名了活动《${ativityQuery.title}》 推送`
                     }
                 )
@@ -487,8 +522,13 @@ exports.DAO = {
                     ctx.app.io, 
                     activityModle.participants.concat(ctx.userId), 
                     {
-                        aId: activityModle._id,
-                        title: activityModle.title,
+                        activity: {
+                            status: ACTIVITY_INVALID,
+                            activity: {
+                                _id: activityModle._id,
+                                title: activityModle.title
+                            }
+                        },
                         msg: `${ctx.club.name} 活动《${activityModle.title}》已失效 推送`
                     }
                 )

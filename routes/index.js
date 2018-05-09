@@ -16,7 +16,11 @@ router.prefix('/api')
 router.use(users.routes(), users.allowedMethods())
 router.use(articles.routes(), articles.allowedMethods())
 router.use(clubs.routes(), clubs.allowedMethods())
-router.use(applications.routes(), applications.allowedMethods())
+router.use(
+    middlewares.validateUserId(),
+    applications.routes(),
+    applications.allowedMethods()
+)
 router.use(activities.routes(), activities.allowedMethods())
 router.use(
     middlewares.validateUserId(),

@@ -59,5 +59,10 @@ router.put(
     middlewares.validateParams('body activityId'), 
     ActivityM.DAO.InvalidActivity
 )
+router.get(
+    '/one', 
+    middlewares.validateParams('query aId'), 
+    ActivityM.DAO.getActivity
+)
 
 module.exports = router
