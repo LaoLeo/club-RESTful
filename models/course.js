@@ -6,7 +6,6 @@ const ApiError = require('../controllers/ApiErrorController')
 const ApiErrorNames = require('../controllers/ApiErrorNames')
 const CONST = require('../utils/const')
 const util = require('../utils/util')
-const app = require('../app')
 
 const courseSchema = new Schema({
     title: String,
@@ -53,20 +52,20 @@ exports.DAO = {
 
         try {
             let course = await CourseM.create({
-            title,
-            content,
-            startTime,
-            endTime
-        })
-        await ClubM.clubModel.findByIdAndUpdate(
-            clubId,
-            {
-                $addToSet: { courses: course._id }
+                title,
+                content,
+                startTime,
+                endTime
+            })
+            await ClubM.clubModel.findByIdAndUpdate(
+                clubId,
+                {
+                    $addToSet: { courses: course._id }
+                }
+            )
+            ctx.body = {
+                course
             }
-        )
-        ctx.body = {
-            course
-        }
         } catch (err) {
             util.handleApiError(err)
         }
@@ -187,7 +186,6 @@ exports.DAO = {
             ctx.body = {
                 courses: club.courses
             }
-            ctx.app.io.emit('user@{5ae992809da6021b28e187c4}', { msg: '列表已发送'})
         } catch (err) {
             util.handleApiError(err)
         }

@@ -7,6 +7,8 @@ const ApiError = require('../controllers/ApiErrorController')
 const ApiErrorNames = require('../controllers/ApiErrorNames')
 const CONST = require('../utils/const')
 const util = require('../utils/util')
+const socket = require('../socket')
+const ActivityM = require('../models/activity')
 
 const noticeSchema = new Schema({
     type: {
@@ -74,14 +76,38 @@ exports.DAO = {
             
             
             let notice = await NoticeM.create(info)
-            await ClubM.clubModel.findByIdAndUpdate(
+            let club = await ClubM.clubModel.findByIdAndUpdate(
                 clubId,
-                { $addToSet: { notices: notice._id } }
+                { $addToSet: { notices: notice._id } },
+                { new: true }
             )
             if (isForAcMember) {
                 //通知活动的参加者
+                let activity = await ActivityM.activityModel.findOne({_id: aId, author: clubId})
+                socket.pushMsg(
+                    ctx.app.io, 
+                    activity.participants && activity.participants, 
+                    {
+                        notice: {
+                            status: CONST.STATUS_NORMAL,
+                            notice: notice.toJSON()
+                        },
+                        msg: `${club.name} 通知参加《${activity.title}》的人员`
+                    }
+                )
             } else {
                 // 通知所有人员
+                socket.pushMsg(
+                    ctx.app.io, 
+                    club.members.concat(club.owner), 
+                    {
+                        notice: {
+                            status: CONST.STATUS_NORMAL,
+                            notice: notice.toJSON()
+                        },
+                        msg: `${club.name} 通知全体会员`
+                    }
+                )
             }
             ctx.body = {
                 notice

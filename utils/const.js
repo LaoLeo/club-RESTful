@@ -1,6 +1,10 @@
 module.exports = {
     CLUB_RECOMMEND_NUMBER: 5,
 
+    // status 通用码
+    STATUS_NORMAL: 1,
+    STATUS_DISABLE: 0,
+
     APPLICATION_UNTREATED: 2, // 申请未处理
     APPLICATION_SUCCESS: 1, // 申请成功
     APPLICATION_REJECT: 0, // 申请拒绝

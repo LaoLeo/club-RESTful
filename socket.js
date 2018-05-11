@@ -22,7 +22,7 @@ module.exports = {
      * @param {Array} userIds 
      * @param {Object} data 
      */
-    pushMsg(io, userIds, data) {
+    pushMsg(io, userIds = [], data) {
 
         for (let i = 0; i < userIds.length; i++) {
             let userId = userIds[i]
