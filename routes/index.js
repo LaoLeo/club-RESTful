@@ -11,7 +11,7 @@ const images = require('./api/image')
 
 const middlewares = require('../utils/middlewares')
 
-router.prefix('/api')
+if (process.env.NODE_ENV === 'development') router.prefix('/api')
 
 router.use(users.routes(), users.allowedMethods())
 router.use(articles.routes(), articles.allowedMethods())

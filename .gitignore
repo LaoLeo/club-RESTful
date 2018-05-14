@@ -2,3 +2,5 @@ node_modules/
 .vscode/
 public/
 static/
+ecosystem.config.js
+api.md
