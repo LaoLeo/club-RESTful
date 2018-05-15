@@ -2,6 +2,7 @@ const ApiError = require('../controllers/ApiErrorController')
 const ApiErrorNames = require('../controllers/ApiErrorNames')
 const UserM = require('../models/user')
 const ClubM = require('../models/club')
+const util = require('../utils/util')
 
 /**
  * 在app.use(router)前调用
@@ -63,7 +64,8 @@ const handleAccessToken = () => {
                 /**
                  * todo 解密access_token
                  */
-                let access_token = JSON.parse(ctx.header['x-access-token'])
+                // let access_token = JSON.parse(ctx.header['x-access-token'])
+                let access_token = util.decodeToken(ctx.header['x-access-token'])
                 ctx.userId = access_token.userId
             } catch(err) {
                 console.log('无效JSON字符串：', ctx.header['x-access-token'])

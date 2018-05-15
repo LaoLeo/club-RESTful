@@ -2,22 +2,27 @@ const mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     ObjectId = mongoose.Schema.Types.ObjectId
 const moment = require('moment')
+const axios = require('axios')
 const ApiError = require('../controllers/ApiErrorController.js')
 const ApiErrorNames = require('../controllers/ApiErrorNames.js')
 const CONST = require('../utils/const.js')
 const ClubM = require('../models/club.js')
+const conf = require('../config')
+const util = require('../utils/util')
 
 const userSchema = new Schema({
     name: {
         type: String,
         require: true
     },
-    sex:  String,
+    sex: Number, // 1man,2woman
     phone: String,
     picture: String,
     backgroundWall: String,
     signature: String,
     status: Number,
+    openid: String,
+    session_key: String,
     clubs_join: [{
         type: ObjectId,
         ref: 'Club'
@@ -81,6 +86,43 @@ userSchema.statics = {
 const UserM = exports.userModel = mongoose.model('User', userSchema)
 
 exports.DAO = {
+    login: async (ctx, next) => {
+        let {
+            code,
+            userInfo
+        } = ctx.request.body
+        
+        let uri = `https://api.weixin.qq.com/sns/jscode2session?appid=${conf.AppID}&secret=${conf.AppSecret}&js_code=${code}&grant_type=authorization_code`
+        let res = await axios.get(uri)
+        let data = res.data
+        if (res.status !== 200) throw new ApiError(null, 404, '获取不到openid，errcode：'+data.errcode+',errmsg:'+data.errmsg)
+
+        let user = await UserM.findOne({openid: data.openid})
+        if (!user) {
+            user = new UserM({
+                name: userInfo.nickName,
+                picture: userInfo.avatarUrl,
+                sex: userInfo.gender,
+                openid: data.openid,
+                session_key: data.session_key,
+                status: 1
+            })
+            try {
+                user = await user.save()
+            } catch (err) {
+                throw new ApiError(ApiErrorNames.SERVER_ERROR)
+            }
+        }
+
+        ctx.body = {
+            user,
+            token: util.encodeToken({
+                userId: user._id.toJSON()
+            })
+        }
+
+    },
+
     create: async (ctx, next) => {
         const params = ctx.request.body
         const name = params.name || ''

@@ -3,6 +3,7 @@ const ApiErrorNames = require('../controllers/ApiErrorNames')
 const conf = require('../config')
 const path = require('path')
 const fs = require('fs')
+const jwt = require('jwt-simple')
 
 module.exports = {
     handleApiError: (err) => {
@@ -46,5 +47,13 @@ module.exports = {
         let script_reg = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
         let style_reg= /<style[^>]*?>[\s\S]*?<\/style>/gi
         return content.replace(script_reg, "").replace(style_reg, "")
+    },
+
+    encodeToken(perload) {
+        return jwt.encode(perload, conf.tokenSecret)
+    },
+
+    decodeToken(token) {
+        return jwt.decode(token, conf.tokenSecret)
     }
 }
