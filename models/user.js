@@ -144,12 +144,25 @@ exports.DAO = {
         }
     },
 
+    getInfo: async (ctx, next) => {
+        let userId = ctx.userId
+
+        try {
+            let user = await UserM.getClubsRef(userId)
+            ctx.body = {
+                user
+            }
+        } catch(err) {
+            throw new ApiError(ApiErrorNames.SERVER_ERROR)
+        }
+    },
+
     editInfo: async (ctx, next) => {
         const params = ctx.request.body
         if(!params._id) throw new ApiError(null, 400, '非法操作')
         let info = {}
         if(params.name) info.name = params.name
-        if(params.sex) info.sex = params.sex
+        if(params.sex) info.sex = parseInt(params.sex)
         if(params.phone) info.phone = params.phone
         if(params.picture) info.picture = params.picture
         if(params.backgroundWall) info.backgroundWall = params.backgroundWall
