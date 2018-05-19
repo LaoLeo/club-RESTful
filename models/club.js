@@ -91,17 +91,15 @@ const ClubM = exports.clubModel = mongoose.model('Club', clubSchema)
 exports.DAO = {
     create: async (ctx, next) => {
         const params = ctx.request.body
+        let userId = ctx.userId
         let info = {}
         let {
             name,
-            userId,
             picture,
             signature,
             summary
         } = params
         if (summary) summary = util.formatContent(summary)
-
-        if(!name || !userId || !picture || !signature) throw new ApiError(ApiErrorNames.MISSING_PAEAM)
         
         let clubOwn = await ClubM.getClubOwnByUserId(userId)
         if(clubOwn.length > 0) throw new ApiError(null, 400, '一人只能创建一个社团')

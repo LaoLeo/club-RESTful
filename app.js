@@ -10,6 +10,11 @@ const koaBody = require('koa-body')
 const middlewares = require('./utils/middlewares')
 
 app.use(async(ctx, next) => {
+  ctx.rootDir = __dirname
+  await next()
+})
+
+app.use(async(ctx, next) => {
   ctx.set('Access-Control-Allow-Origin', '*')
   ctx.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
   ctx.set('Access-Control-Allow-Headers', 'Content-Type, x-access-token')

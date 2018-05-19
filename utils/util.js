@@ -39,7 +39,7 @@ module.exports = {
 
         let imageStaticDir = path.join(__dirname, '../', conf.staticDir, imageDir)
         if (!fs.existsSync(imageStaticDir)) fs.mkdirSync(imageStaticDir)
-        return `${imageStaticDir}/${imageName}`
+        return `${imageDir}/${imageName}`
     },
 
     /**
