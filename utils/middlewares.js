@@ -97,7 +97,7 @@ const validateClubOwner = () => {
         let clubOwn = await ClubM.clubModel.getClubOwnByUserId(ctx.userId)
         let clubId = clubOwn && clubOwn[0]
         if(!clubId) {
-            throw ApiError(ApiErrorNames.FORBIDDEN)
+            throw new ApiError(ApiErrorNames.FORBIDDEN)
         } else {
             ctx.clubId = clubId.toJSON()
             ctx.club = await ClubM.clubModel.findById(clubId)

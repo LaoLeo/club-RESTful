@@ -16,28 +16,11 @@ if (process.env.NODE_ENV === 'development') router.prefix('/api')
 router.use(users.routes(), users.allowedMethods())
 router.use(articles.routes(), articles.allowedMethods())
 router.use(clubs.routes(), clubs.allowedMethods())
-router.use(
-    middlewares.validateUserId(),
-    applications.routes(),
-    applications.allowedMethods()
-)
 router.use(activities.routes(), activities.allowedMethods())
-router.use(
-    middlewares.validateUserId(),
-    middlewares.validateClubOwner(),
-    notices.routes(),
-    notices.allowedMethods()
-)
-router.use(
-    middlewares.validateUserId(),
-    courses.routes(),
-    courses.allowedMethods()
-)
-router.use(
-    middlewares.validateUserId(),
-    images.routes(),
-    images.allowedMethods()
-)
+router.use(applications.routes(),applications.allowedMethods())
+router.use(courses.routes(),courses.allowedMethods())
+router.use(notices.routes()).use(notices.allowedMethods())
+router.use(images.routes()).use(images.allowedMethods())
 
 
 module.exports = router

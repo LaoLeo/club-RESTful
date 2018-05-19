@@ -44,7 +44,7 @@ class Image {
             let url = util.formatImageSaveURL(ctx.userId, image.type)
             try {
                 let buffer = fs.readFileSync(image.path)
-                fs.writeFileSync(conf.staticDir + url, buffer)
+                fs.writeFileSync(url, buffer)
                 ctx.body = {
                     imageURI: `${ctx.origin+url}`
                 }

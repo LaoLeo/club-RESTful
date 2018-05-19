@@ -4,15 +4,17 @@ const middlewares = require('../../utils/middlewares')
 
 router.prefix('/application')
 
-router.post('/create', async (ctx, next) => ApplicationM.DAO.create(ctx, next))
-router.get('/list', async (ctx, next) => ApplicationM.DAO.getList(ctx, next))
+router.post('/create', middlewares.validateUserId(), async (ctx, next) => ApplicationM.DAO.create(ctx, next))
+router.get('/list', middlewares.validateUserId(), async (ctx, next) => ApplicationM.DAO.getList(ctx, next))
 router.put(
     '/handle',
+    middlewares.validateUserId(),
     middlewares.validateClubOwner(),
     async (ctx, next) => ApplicationM.DAO.handle(ctx, next)
 )
 router.delete(
     '/remove',
+    middlewares.validateUserId(),
     middlewares.validateClubOwner(),
     async (ctx, next) => ApplicationM.DAO.remove(ctx, next)
 )

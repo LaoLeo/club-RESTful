@@ -6,6 +6,7 @@ router.prefix('/image')
 
 router.post(
     '/saveBlobUpload',
+    middlewares.validateUserId(),
     ImageController.HandleBlobUpload()
 )
 router.post(

@@ -6,6 +6,7 @@ router.prefix('/course')
 
 router.post(
     '/create',
+    middlewares.validateUserId(),
     middlewares.validateClubOwner(),
     middlewares.validateParams('body title content'),
     middlewares.validateTime(),
@@ -13,12 +14,14 @@ router.post(
 )
 router.put(
     '/remove',
+    middlewares.validateUserId(),
     middlewares.validateClubOwner(),
     middlewares.validateParams('body cId'),
     CourseM.DAO.remove
 )
 router.put(
     '/edit',
+    middlewares.validateUserId(),
     middlewares.validateClubOwner(),
     middlewares.validateParams('body cId'),
     middlewares.validateTime(),
@@ -26,6 +29,7 @@ router.put(
 )
 router.get(
     '/list',
+    middlewares.validateUserId(),
     middlewares.validateParams('query page column clubId'),
     CourseM.DAO.list
 )

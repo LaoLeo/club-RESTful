@@ -115,7 +115,7 @@ exports.DAO = {
         }
 
         ctx.body = {
-            user,
+            user: util.filterOpenIdAndSessionkey(user.toJSON()),
             token: util.encodeToken({
                 userId: user._id.toJSON()
             })
@@ -137,7 +137,7 @@ exports.DAO = {
         try {
             let result = await usr.save()
             ctx.body = {
-                user: result
+                user: util.filterOpenIdAndSessionkey(result.toJSON())
             }
         } catch(err) {
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
@@ -150,7 +150,7 @@ exports.DAO = {
         try {
             let user = await UserM.getClubsRef(userId)
             ctx.body = {
-                user
+                user: util.filterOpenIdAndSessionkey(user.toJSON())
             }
         } catch(err) {
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
@@ -177,7 +177,7 @@ exports.DAO = {
             // depatch save hook
             resultDoc.save()
             ctx.body = {
-                user: resultDoc
+                user: util.filterOpenIdAndSessionkey(resultDoc.toJSON())
             }
         } catch(err) {
             console.log(err)

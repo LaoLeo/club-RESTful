@@ -30,11 +30,16 @@ module.exports = {
     formatImageSaveURL(userId, imageType) {
         let date = this.getDate()
         let imageDir = conf.imageSaveDir + '/' + date
+        
+        let i = imageType.indexOf('/')
+        if (i > -1) {
+            imageType = imageType.slice(i+1)
+        }
         let imageName = userId + Date.now() + '.' + imageType
 
-        let imageStaticDir = conf.staticDir + imageDir
+        let imageStaticDir = path.join(__dirname, '../', conf.staticDir, imageDir)
         if (!fs.existsSync(imageStaticDir)) fs.mkdirSync(imageStaticDir)
-        return `${imageDir}/${imageName}`
+        return `${imageStaticDir}/${imageName}`
     },
 
     /**
@@ -55,5 +60,12 @@ module.exports = {
 
     decodeToken(token) {
         return jwt.decode(token, conf.tokenSecret)
+    },
+
+    filterOpenIdAndSessionkey(obj) {
+        delete obj['openid']
+        delete obj['session_key']
+
+        return obj
     }
 }
