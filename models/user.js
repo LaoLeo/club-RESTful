@@ -186,7 +186,7 @@ exports.DAO = {
     },
 
     getClubsRelateSelf: async (ctx, next) => {
-        let {userId} = ctx.query
+        let userId = ctx.userId
         if(!userId) throw new ApiError(null, 400, '非法操作')
 
         try {
@@ -203,7 +203,7 @@ exports.DAO = {
     },
 
     getClubsRecommend: async (ctx, next) => {
-        let {userId} = ctx.query
+        let userId = ctx.userId
         let clubsRecommendArr = []
         if(!userId) throw new ApiError(null, 400, '非法操作')
 

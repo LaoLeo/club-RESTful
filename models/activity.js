@@ -18,6 +18,9 @@ const activitySchema = new Schema({
         type: String,
         require: true
     },
+    posters: {
+        type: Array
+    },
     author: {
         type: ObjectId,
         ref: 'Club'
@@ -78,6 +81,7 @@ exports.DAO = {
      *      content {String}
      *      type {Number}
      *      stash {Number} 控制活动状态，暂存或者发布
+     *      posters {ArrayString}
      * } 
      */
     create: async (ctx, next) => {
@@ -86,9 +90,11 @@ exports.DAO = {
             title,
             content,
             type,
+            posters,
             stash
         } = ctx.request.body
         content = util.formatContent(content)
+        posters = posters ?  JSON.parse(posters) : []
 
         try {
             let clubOwn = await ClubM.clubModel.getClubOwnByUserId(userId)
@@ -100,6 +106,7 @@ exports.DAO = {
                 title,
                 content,
                 type,
+                posters,
                 status: stash ? CONST.ACTIVITY_STASH : CONST.ACTIVITY_WORK
             })
             let club = await ClubM.clubModel.findByIdAndUpdate(
@@ -192,6 +199,7 @@ exports.DAO = {
             activityId,
             title,
             content,
+            posters,
             type
         } = ctx.request.body
 
@@ -203,6 +211,7 @@ exports.DAO = {
             if(title) info.title = title
             if(content) info.content = util.formatContent(content)
             if(type) info.type = type
+            if(posters) info.posters = JSON.parse(posters)
 
             let activityUpdatedDoc = await ActivityM.findOneAndUpdate(
                 { _id: activityId, status: {$in: [CONST.ACTIVITY_WORK, CONST.ACTIVITY_STASH]} },
@@ -254,7 +263,11 @@ exports.DAO = {
         let aId = ctx.query.aId
 
         try {
-            let activity = await ActivityM.findById(aId)
+            let activity = await ActivityM.findById(aId).populate({
+                path: 'author',
+                model: 'Club',
+                select: '_id name picture'
+            })
             if (!activity) throw ApiError(ApiErrorNames.DATA_NOT_EXIST)
             ctx.body = {
                 activity
@@ -375,7 +388,11 @@ exports.DAO = {
         try {
             let activitiesQuery = await ActivityM.find({status: CONST.ACTIVITY_WORK})
             let total = activitiesQuery.length
-            let activities =  await ActivityM.find({status: CONST.ACTIVITY_WORK})
+            let activities =  await ActivityM.find({status: CONST.ACTIVITY_WORK}).populate({
+                path: 'author',
+                model: 'Club',
+                select: '_id name picture'
+            })
             .sort({
                 'meta.createDate': 'desc',
                 'meta.updateDate': 'desc'
@@ -416,10 +433,11 @@ exports.DAO = {
 
             let updateInfo
             let clubQuery
+            let clubId = ativityQuery.author
             if (ativityQuery.type === CONST.ACTIVITY_ALLOW_ALL) {
                 updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
+                clubQuery = await ClubM.clubModel.findOne({_id: clubId})
             } else if(ativityQuery.type === CONST.ACTIVITY_ALLOW_MEMBE) {
-                let clubId = ativityQuery.author
                 clubQuery = await ClubM.clubModel.findOne({ _id: clubId, 'members': ctx.userId})
                 if(clubQuery) {
                     updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
@@ -437,7 +455,7 @@ exports.DAO = {
                     [clubQuery.owner], 
                     {
                         activity: {
-                            status: ACTIVITY_APPLICATE,
+                            status: CONST.ACTIVITY_APPLICATE,
                             user: {
                                 _id: ctx.userQuery._id,
                                 name: ctx.userQuery.name,
@@ -478,6 +496,10 @@ exports.DAO = {
             let activities = await ActivityM.find({
                 participants: userId,
                 status: { $nin: [CONST.ACTIVITY_STASH] }
+            }).populate({
+                path: 'author',
+                model: 'Club',
+                select: '_id name picture'
             })
             .sort({
                 status: 'asc',

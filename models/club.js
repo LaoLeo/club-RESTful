@@ -174,7 +174,8 @@ exports.DAO = {
             let clubsList = await ClubM.find()
                 .skip((page - 1) * column)
                 .limit(column)
-                // .select('_id name picture')
+                .select('_id name picture signature')
+            
             ctx.body = {
                 clubsList
             }
