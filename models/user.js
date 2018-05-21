@@ -231,5 +231,14 @@ exports.DAO = {
             console.log(err)
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
         }
+    },
+    getToken: async (ctx, next) => {
+        let userId = ctx.query.userId
+
+        ctx.body ={
+            token: util.encodeToken({
+                userId
+            })
+        } 
     }
 }

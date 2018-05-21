@@ -10,5 +10,6 @@ router.post('/create', async (ctx, next) => UserM.DAO.create(ctx, next))
 router.put('/edit', UserM.DAO.editInfo)
 router.get('/clubsRelateSelf', UserM.DAO.getClubsRelateSelf)
 router.get('/clubsRecommend', UserM.DAO.getClubsRecommend)
+router.get('/token', UserM.DAO.getToken)
 
 module.exports = router

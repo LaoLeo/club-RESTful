@@ -183,6 +183,45 @@ exports.DAO = {
             throw new ApiError(ApiErrorNames.SERVER_ERROR)
         }
         
+    },
+    getClubInfo: async (ctx, next) => {
+        let userId = ctx.userId
+        let {
+            clubId
+        } = ctx.query
+        let isOwner = false
+        let isMember = false
+
+        try {
+            let club = await ClubM.findById(clubId).populate({
+                path: 'members',
+                model: 'User',
+                select: '_id picture name phone'
+            }).populate({
+                path: 'activities',
+                model: 'Activity'
+            }).populate({
+                path: 'courses',
+                model: 'Course'
+            })
+    
+            if (club.owner.toJSON() === userId) {
+                isOwner = true
+            }
+            let recode = await ClubM.findOne({members: userId})
+            if (recode) {
+                isMember = true
+            }
+    
+            ctx.body = {
+                club,
+                isOwner,
+                isMember
+            }
+        } catch (err) {
+            util.handleApiError(err)
+        }
+        
     }
 }
 

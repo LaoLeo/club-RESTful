@@ -426,7 +426,7 @@ exports.DAO = {
 
         try {
             let userQuery = ctx.userQuery
-            if (!userQuery.phone) throw new ApiError(null, 403, '报名之前需要绑定手机号哦~')
+            if (!userQuery.phone) throw new ApiError(null, 40301, '报名之前需要绑定手机号哦~')
 
             let ativityQuery = await ActivityM.findById(activityId)
             if (!ativityQuery) throw new ApiError(ApiErrorNames.DATA_NOT_EXIST)

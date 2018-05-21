@@ -45,12 +45,12 @@ const ApplicationM = exports.applicationModel = mongoose.model('Application', ap
 exports.DAO = {
     // 创建申请
     create: async (ctx, next) => {
+        let userId = ctx.userId
         let {
             clubId,
-            userId,
             introduce
         } = ctx.request.body
-        if(!clubId || !userId || !introduce) throw new ApiError(ApiErrorNames.MISSING_PAEAM)
+        if(!clubId || !introduce) throw new ApiError(ApiErrorNames.MISSING_PAEAM)
         
         try {
             let application = await ApplicationM.create({
@@ -90,7 +90,8 @@ exports.DAO = {
 
     // 获取申请列表
     getList: async (ctx, next) => {
-        let { userId, page, column } = ctx.query 
+        let userId = ctx.userId
+        let { page, column } = ctx.query 
         let application = []
         if(!userId) throw new ApiError(ApiErrorNames.MISSING_PAEAM)
 
