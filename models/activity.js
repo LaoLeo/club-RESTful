@@ -442,7 +442,7 @@ exports.DAO = {
                 if(clubQuery) {
                     updateInfo = await ativityQuery.update({ $addToSet: { participants: ctx.userId } })
                 } else {
-                    throw new ApiError(null, 403, `你不是-${clubQuery.name}-的会员哦`)
+                    throw new ApiError(null, 403, `你不是会员哦`)
                 }
                 
             }
