@@ -5,6 +5,7 @@ const ApiError = require('../controllers/ApiErrorController.js')
 const ApiErrorNames = require('../controllers/ApiErrorNames.js')
 const CONST = require('../utils/const.js')
 const ClubM = require('../models/club.js')
+const UserM = require('../models/user.js')
 const socket = require('../socket')
 
 const applicationSchema = new Schema({
@@ -143,6 +144,10 @@ exports.DAO = {
                 await ClubM.clubModel.findByIdAndUpdate(
                     clubId,
                     { $addToSet: { members: application.applicant } }
+                )
+                await UserM.userModel.findByIdAndUpdate(
+                    application.applicant,
+                    { $addToSet: { clubs_join:  clubId } }
                 )
                 /**
                  * 通知成功
