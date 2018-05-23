@@ -45,8 +45,13 @@ exports.DAO = {
                 text,
                 posters
             })
+            let doc = await DynamicM.findById(dynamic._id).populate({
+                path: 'user',
+                model: 'User',
+                select: '_id name picture'
+            })
             ctx.body = {
-                dynamic
+                dynamic: doc
             }
         } catch (err) {
             util.handleApiError(err)
