@@ -8,6 +8,7 @@ const activities = require('./api/activity')
 const notices = require('./api/notice')
 const courses = require('./api/course')
 const images = require('./api/image')
+const dynamic = require('./api/dynamic')
 
 const middlewares = require('../utils/middlewares')
 
@@ -21,6 +22,7 @@ router.use(applications.routes(),applications.allowedMethods())
 router.use(courses.routes(),courses.allowedMethods())
 router.use(notices.routes()).use(notices.allowedMethods())
 router.use(images.routes()).use(images.allowedMethods())
+router.use(dynamic.routes()).use(dynamic.allowedMethods())
 
 
 module.exports = router
