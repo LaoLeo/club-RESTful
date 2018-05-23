@@ -9,9 +9,9 @@ router.post(
     middlewares.validateParams('body text posters'),
     DynamicM.DAO.create
 )
-router.delete(
+router.put(
     '/remove',
-    middlewares.validateParams('query dId'),
+    middlewares.validateParams('body dId'),
     DynamicM.DAO.remove
 )
 router.get(

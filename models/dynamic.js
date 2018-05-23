@@ -56,7 +56,7 @@ exports.DAO = {
         let userId = ctx.userId
         let { 
             dId
-         } = ctx.query
+         } = ctx.request.body
 
         try {
             let dynamic = await DynamicM.findOneAndRemove({
