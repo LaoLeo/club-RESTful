@@ -208,7 +208,7 @@ exports.DAO = {
             if (club.owner.toJSON() === userId) {
                 isOwner = true
             }
-            let recode = await ClubM.findOne({members: userId})
+            let recode = await ClubM.findOne({_id: clubId, members: userId})
             if (recode) {
                 isMember = true
             }
