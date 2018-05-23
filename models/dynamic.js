@@ -16,14 +16,13 @@ const dynamicSchema = new Schema({
     },
     text: String,
     posters: Array,
-    createDate: Date
+    createDate: {
+        type: Date,
+        default: Date.now()
+    }
 })
 
-dynamicSchema.pre('save', function(next) {
-    if(!this.isNew) this.updateDate = Date.now()
-
-    next()
-})
+// dynamicSchema.pre()
 
 dynamicSchema.statics = {
 
@@ -40,15 +39,14 @@ exports.DAO = {
         } = ctx.request.body
         posters = posters ?  JSON.parse(posters) : []
 
-        let dynamic = new DynamicM({
-            user: userId,
-            text,
-            posters
-        })
         try {
-            let doc = await dynamic.save()
+            let dynamic = await DynamicM.create({
+                user: userId,
+                text,
+                posters
+            })
             ctx.body = {
-                dynamic: doc
+                dynamic
             }
         } catch (err) {
             util.handleApiError(err)
@@ -97,7 +95,7 @@ exports.DAO = {
             .exec()
     
             ctx.body = {
-                dynamic
+                dynamics
             }
         } catch (err) {
             util.handleApiError(err)
@@ -114,6 +112,27 @@ exports.DAO = {
             let dynamic = await DynamicM.findOne({_id: dId, user: userId})
             ctx.body = {
                 dynamic
+            }
+        } catch (err) {
+            util.handleApiError(err)
+        }
+        
+    },
+    list: async (ctx, next) => {
+        let userId = ctx.userId
+
+        try {
+            let dynamics = await DynamicM.find({user: userId}).populate({
+                path: 'user',
+                model: 'User',
+                select: '_id name picture'
+            })
+            .sort({
+                'createDate': 'desc'
+            })
+    
+            ctx.body = {
+                dynamics
             }
         } catch (err) {
             util.handleApiError(err)

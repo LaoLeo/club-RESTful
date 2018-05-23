@@ -24,5 +24,9 @@ router.get(
     middlewares.validateParams('query dId'),
     DynamicM.DAO.one
 )
+router.get(
+    '/list',
+    DynamicM.DAO.list
+)
 
 module.exports = router
