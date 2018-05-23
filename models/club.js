@@ -199,10 +199,21 @@ exports.DAO = {
                 select: '_id picture name phone'
             }).populate({
                 path: 'activities',
-                model: 'Activity'
+                model: 'Activity',
+                options: {
+                    sort: {
+                        'meta.createDate': 'desc'
+                    }
+                }
+                
             }).populate({
                 path: 'courses',
-                model: 'Course'
+                model: 'Course',
+                options: {
+                    sort: {
+                        'meta.createDate': 'desc'
+                    }
+                }
             })
     
             if (club.owner.toJSON() === userId) {

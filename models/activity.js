@@ -114,6 +114,11 @@ exports.DAO = {
                 { $addToSet: { activities: activity._id } }
             )
             let doc = await activity.save()
+            doc = await ActivityM.findById(doc._id).populate({
+                path: 'author',
+                model: 'Club',
+                select: '_id name picture'
+            })
             ctx.body = {
                 activity: doc
             }
